@@ -1,0 +1,73 @@
+:root {
+  color-scheme: dark;
+  --matrix-black: #050805;
+  --matrix-deep: #0b160d;
+  --matrix-green: #5dff7a;
+  --matrix-muted: #9fbd9f;
+  --matrix-line: rgba(93, 255, 122, 0.24);
+  --matrix-glow: rgba(93, 255, 122, 0.18);
+  font-family: "Cascadia Mono", "Consolas", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--matrix-black);
+  color: var(--matrix-green);
+  line-height: 1.6;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.16;
+  background-image: linear-gradient(var(--matrix-line) 1px, transparent 1px), linear-gradient(90deg, var(--matrix-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+a { color: inherit; }
+
+.site-header,
+.site-footer,
+main { width: min(100% - 2rem, 1120px); margin-inline: auto; }
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--matrix-line);
+}
+
+.brand { font-weight: 700; text-decoration: none; text-shadow: 0 0 14px var(--matrix-glow); }
+
+.site-nav { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; }
+
+.site-nav a { text-decoration: none; }
+.site-nav a:hover, .site-nav a:focus-visible { color: #d6ffda; text-shadow: 0 0 12px var(--matrix-green); }
+
+.hero { min-height: 62vh; display: grid; align-content: center; padding: 5rem 0; }
+.eyebrow, .section-kicker { color: var(--matrix-muted); letter-spacing: 0.14em; font-size: 0.78rem; }
+h1, h2 { margin: 0 0 1rem; line-height: 1.1; }
+h1 { max-width: 10ch; font-size: clamp(3rem, 12vw, 8rem); text-shadow: 0 0 24px var(--matrix-glow); }
+h2 { font-size: clamp(1.7rem, 4vw, 3rem); }
+.hero-copy, .content-section p { max-width: 62ch; color: var(--matrix-muted); }
+.content-section { padding: 5rem 0; border-top: 1px solid var(--matrix-line); }
+.game-placeholder { background: linear-gradient(135deg, var(--matrix-deep), transparent); }
+.site-footer { padding: 2rem 0; border-top: 1px solid var(--matrix-line); color: var(--matrix-muted); font-size: 0.8rem; }
+
+@media (max-width: 640px) {
+  .site-header { align-items: flex-start; flex-direction: column; }
+  .site-nav { width: 100%; justify-content: space-between; gap: 0.5rem; }
+  .hero { min-height: 54vh; padding: 3.5rem 0; }
+  .content-section { padding: 3.5rem 0; }
+}
