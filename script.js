@@ -89,7 +89,7 @@
     if (state.lives <= 0) { endGame(); return true; }
     state.invincibleUntil = performance.now() + 1000;
     resetSnake();
-    setStatus("충돌! 1초 동안 무적입니다.");
+    setStatus("Collision! Invulnerable for 1 second.");
     return true;
   };
   const moveEnemy = () => {
@@ -115,14 +115,14 @@
     if (nextHead.x === state.food.x && nextHead.y === state.food.y) { state.score += 10; if (state.score > state.highScore) { state.highScore = state.score; localStorage.setItem("hongsuk-kim-worm-high-score", String(state.highScore)); } spawnFood(); } else { state.snake.pop(); }
     moveEnemy();
     if (nextHead.x === state.enemy.x && nextHead.y === state.enemy.y) { state.snake.shift(); loseLife(); return; }
-    setStatus(state.invincibleUntil > performance.now() ? "무적 상태" : "게임 진행 중");
+    setStatus(state.invincibleUntil > performance.now() ? "Invulnerable" : "Game in progress");
     updateStats();
   }
   function startGame() {
-    stopTimer(); resetSnake(); state.score = 0; state.lives = 3; state.tick = 0; state.invincibleUntil = 0; state.enemy = { x: 19, y: 5, dx: -1, dy: 0 }; state.status = "running"; spawnFood(); updateStats(); hideOverlay(); pauseButton.disabled = false; pauseButton.textContent = "일시정지"; setStatus("게임 진행 중"); startTimer();
+    stopTimer(); resetSnake(); state.score = 0; state.lives = 3; state.tick = 0; state.invincibleUntil = 0; state.enemy = { x: 19, y: 5, dx: -1, dy: 0 }; state.status = "running"; spawnFood(); updateStats(); hideOverlay(); pauseButton.disabled = false; pauseButton.textContent = "Pause"; setStatus("Game in progress"); startTimer();
   }
-  function endGame() { stopTimer(); state.status = "gameover"; pauseButton.disabled = true; showOverlay("GAME OVER", `최종 점수 ${state.score} · 재시작 버튼을 눌러주세요.`); setStatus("게임 오버"); }
-  function togglePause() { if (state.status === "running") { state.status = "paused"; stopTimer(); pauseButton.textContent = "계속하기"; showOverlay("PAUSED", "계속하기 버튼으로 재개합니다."); setStatus("일시정지"); } else if (state.status === "paused") { state.status = "running"; pauseButton.textContent = "일시정지"; hideOverlay(); setStatus("게임 진행 중"); startTimer(); } }
+  function endGame() { stopTimer(); state.status = "gameover"; pauseButton.disabled = true; showOverlay("GAME OVER", `Final score ${state.score} · Press Restart to try again.`); setStatus("Game over"); }
+  function togglePause() { if (state.status === "running") { state.status = "paused"; stopTimer(); pauseButton.textContent = "Resume"; showOverlay("PAUSED", "Press Resume to continue."); setStatus("Paused"); } else if (state.status === "paused") { state.status = "running"; pauseButton.textContent = "Pause"; hideOverlay(); setStatus("Game in progress"); startTimer(); } }
   const setDirection = (directionName) => {
     if (state.status !== "running") return;
     const next = directions[directionName];
