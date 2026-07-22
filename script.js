@@ -23,6 +23,7 @@
   const scoreElement = $("#score");
   const highScoreElement = $("#high-score");
   const livesElement = $("#lives");
+  const healthBar = $("#health-bar");
   const statusElement = $("#game-status");
   const overlay = $("#game-overlay");
   const overlayTitle = $("#overlay-title");
@@ -66,6 +67,8 @@
     scoreElement.textContent = state.score;
     highScoreElement.textContent = state.highScore;
     livesElement.textContent = state.lives;
+    healthBar?.querySelectorAll(".health-cell").forEach((cell, index) => cell.classList.toggle("is-active", index < state.lives));
+    healthBar?.setAttribute("aria-label", `${state.lives} health remaining`);
   };
   const showOverlay = (title, copy) => {
     overlayTitle.textContent = title; overlayCopy.textContent = copy; overlay.classList.remove("is-hidden");
