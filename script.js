@@ -23,6 +23,7 @@
   const scoreElement = $("#score");
   const highScoreElement = $("#high-score");
   const livesElement = $("#lives");
+  const enemyCountElement = $("#enemy-count");
   const healthBar = $("#health-bar");
   const statusElement = $("#game-status");
   const overlay = $("#game-overlay");
@@ -36,15 +37,17 @@
   const columns = canvas.width / cell;
   const rows = canvas.height / cell;
   const tickSpeed = 180;
+  const enemySpawnInterval = 60000;
+  const maxEnemies = 4;
   const directions = {
     up: { x: 0, y: -1 }, down: { x: 0, y: 1 },
     left: { x: -1, y: 0 }, right: { x: 1, y: 0 }
   };
   const state = {
-    status: "ready", timer: null, tick: 0, score: 0, lives: 3,
+    status: "ready", timer: null, tick: 0, elapsedMs: 0, score: 0, lives: 3,
     highScore: Number(localStorage.getItem("hongsuk-kim-worm-high-score") || 0),
     snake: [], direction: { x: 1, y: 0 }, nextDirection: { x: 1, y: 0 },
-    food: { x: 14, y: 8 }, enemy: { x: 19, y: 5, dx: -1, dy: 0 },
+    food: { x: 14, y: 8 }, enemies: [{ x: 19, y: 5, dx: -1, dy: 0 }],
     invincibleUntil: 0, particles: []
   };
   highScoreElement.textContent = state.highScore;
@@ -54,7 +57,7 @@
     state.direction = { x: 1, y: 0 };
     state.nextDirection = { x: 1, y: 0 };
   };
-  const isOccupied = (point) => state.snake.some((segment) => segment.x === point.x && segment.y === point.y) || (state.enemy.x === point.x && state.enemy.y === point.y);
+  const isOccupied = (point) => state.snake.some((segment) => segment.x === point.x && segment.y === point.y) || state.enemies.some((enemy) => enemy.x === point.x && enemy.y === point.y);
   const randomPoint = () => ({ x: Math.floor(Math.random() * columns), y: Math.floor(Math.random() * rows) });
   const spawnFood = () => {
     let point = randomPoint();
@@ -67,6 +70,7 @@
     scoreElement.textContent = state.score;
     highScoreElement.textContent = state.highScore;
     livesElement.textContent = state.lives;
+    if (enemyCountElement) enemyCountElement.textContent = `${state.enemies.length} / ${maxEnemies}`;
     healthBar?.querySelectorAll(".health-cell").forEach((cell, index) => cell.classList.toggle("is-active", index < state.lives));
     healthBar?.setAttribute("aria-label", `${state.lives} health remaining`);
   };
@@ -95,19 +99,33 @@
     setStatus("Collision! Invulnerable for 1 second.");
     return true;
   };
-  const moveEnemy = () => {
-    if (state.tick % 3 === 0 && Math.random() < 0.45) {
-      const choices = Object.values(directions).filter((direction) => direction.x !== -state.enemy.dx || direction.y !== -state.enemy.dy);
-      const next = choices[Math.floor(Math.random() * choices.length)];
-      state.enemy.dx = next.x; state.enemy.dy = next.y;
-    }
-    const next = { x: state.enemy.x + state.enemy.dx, y: state.enemy.y + state.enemy.dy };
-    if (next.x < 0 || next.x >= columns || next.y < 0 || next.y >= rows) { state.enemy.dx *= -1; state.enemy.dy *= -1; return; }
-    state.enemy.x = next.x; state.enemy.y = next.y;
+  const moveEnemies = () => {
+    state.enemies.forEach((enemy) => {
+      if (state.tick % 3 === 0 && Math.random() < 0.45) {
+        const choices = Object.values(directions).filter((direction) => direction.x !== -enemy.dx || direction.y !== -enemy.dy);
+        const next = choices[Math.floor(Math.random() * choices.length)];
+        enemy.dx = next.x; enemy.dy = next.y;
+      }
+      const next = { x: enemy.x + enemy.dx, y: enemy.y + enemy.dy };
+      if (next.x < 0 || next.x >= columns || next.y < 0 || next.y >= rows) { enemy.dx *= -1; enemy.dy *= -1; return; }
+      enemy.x = next.x; enemy.y = next.y;
+    });
+  };
+  const spawnEnemy = () => {
+    if (state.enemies.length >= maxEnemies) return false;
+    let point = randomPoint();
+    let attempts = 0;
+    while ((isOccupied(point) || (point.x === state.food.x && point.y === state.food.y)) && attempts < 100) { point = randomPoint(); attempts += 1; }
+    const options = Object.values(directions);
+    const direction = options[Math.floor(Math.random() * options.length)];
+    state.enemies.push({ x: point.x, y: point.y, dx: direction.x, dy: direction.y });
+    updateStats();
+    return true;
   };
   function step() {
     if (state.status !== "running") return;
     state.tick += 1;
+    state.elapsedMs += tickSpeed;
     state.direction = state.nextDirection;
     const head = state.snake[0];
     const nextHead = { x: head.x + state.direction.x, y: head.y + state.direction.y };
@@ -116,13 +134,14 @@
     if (hitWall || hitSelf) { loseLife(); return; }
     state.snake.unshift(nextHead);
     if (nextHead.x === state.food.x && nextHead.y === state.food.y) { state.score += 10; if (state.score > state.highScore) { state.highScore = state.score; localStorage.setItem("hongsuk-kim-worm-high-score", String(state.highScore)); } spawnFood(); } else { state.snake.pop(); }
-    moveEnemy();
-    if (nextHead.x === state.enemy.x && nextHead.y === state.enemy.y) { state.snake.shift(); loseLife(); return; }
-    setStatus(state.invincibleUntil > performance.now() ? "Invulnerable" : "Game in progress");
+    moveEnemies();
+    if (state.enemies.some((enemy) => nextHead.x === enemy.x && nextHead.y === enemy.y)) { state.snake.shift(); loseLife(); return; }
+    if (state.elapsedMs >= enemySpawnInterval) { state.elapsedMs = 0; spawnEnemy(); }
+    setStatus(state.invincibleUntil > performance.now() ? `Invulnerable · Enemies ${state.enemies.length}/${maxEnemies}` : `Game in progress · Enemies ${state.enemies.length}/${maxEnemies}`);
     updateStats();
   }
   function startGame() {
-    stopTimer(); resetSnake(); state.score = 0; state.lives = 3; state.tick = 0; state.invincibleUntil = 0; state.enemy = { x: 19, y: 5, dx: -1, dy: 0 }; state.status = "running"; spawnFood(); updateStats(); hideOverlay(); pauseButton.disabled = false; pauseButton.textContent = "Pause"; setStatus("Game in progress"); startTimer();
+    stopTimer(); resetSnake(); state.score = 0; state.lives = 3; state.tick = 0; state.elapsedMs = 0; state.invincibleUntil = 0; state.enemies = [{ x: 19, y: 5, dx: -1, dy: 0 }]; state.status = "running"; spawnFood(); updateStats(); hideOverlay(); pauseButton.disabled = false; pauseButton.textContent = "Pause"; setStatus(`Game in progress · Enemies 1/${maxEnemies}`); startTimer();
   }
   function endGame() { stopTimer(); state.status = "gameover"; pauseButton.disabled = true; showOverlay("GAME OVER", `Final score ${state.score} · Press Restart to try again.`); setStatus("Game over"); }
   function togglePause() { if (state.status === "running") { state.status = "paused"; stopTimer(); pauseButton.textContent = "Resume"; showOverlay("PAUSED", "Press Resume to continue."); setStatus("Paused"); } else if (state.status === "paused") { state.status = "running"; pauseButton.textContent = "Pause"; hideOverlay(); setStatus("Game in progress"); startTimer(); } }
@@ -138,7 +157,7 @@
     context.strokeStyle = "rgba(101,255,127,.08)"; context.lineWidth = 1;
     for (let x = 0; x <= columns; x += 1) { context.beginPath(); context.moveTo(x * cell, 0); context.lineTo(x * cell, canvas.height); context.stroke(); }
     for (let y = 0; y <= rows; y += 1) { context.beginPath(); context.moveTo(0, y * cell); context.lineTo(canvas.width, y * cell); context.stroke(); }
-    context.fillStyle = "#ff6c74"; context.shadowColor = "#ff6c74"; context.shadowBlur = 12; context.fillRect(state.enemy.x * cell + 4, state.enemy.y * cell + 4, cell - 8, cell - 8); context.shadowBlur = 0;
+    context.fillStyle = "#ff6c74"; context.shadowColor = "#ff6c74"; context.shadowBlur = 12; state.enemies.forEach((enemy) => context.fillRect(enemy.x * cell + 4, enemy.y * cell + 4, cell - 8, cell - 8)); context.shadowBlur = 0;
     context.fillStyle = "#d8ffdc"; context.shadowColor = "#65ff7f"; context.shadowBlur = 14; context.fillRect(state.food.x * cell + 5, state.food.y * cell + 5, cell - 10, cell - 10); context.shadowBlur = 0;
     state.snake.forEach((segment, index) => { const visible = performance.now() >= state.invincibleUntil || Math.floor(performance.now() / 90) % 2 === 0; if (!visible) return; context.fillStyle = index === 0 ? "#d8ffdc" : "#65ff7f"; context.fillRect(segment.x * cell + 2, segment.y * cell + 2, cell - 4, cell - 4); });
     state.particles = state.particles.filter((particle) => particle.life > 0); state.particles.forEach((particle) => { particle.x += particle.vx; particle.y += particle.vy; particle.life -= .035; context.globalAlpha = Math.max(0, particle.life); context.fillStyle = "#ffb3b7"; context.fillRect(particle.x, particle.y, 3, 3); }); context.globalAlpha = 1;
